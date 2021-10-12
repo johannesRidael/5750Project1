@@ -2,6 +2,8 @@
 """
 Data generation for logistic regression
 """
+import math
+
 import numpy as np
 from numpy.random import multivariate_normal
 from scipy.linalg.special_matrices import toeplitz
@@ -52,3 +54,22 @@ for ld in [0.005, 0.01, 0.05, 0.1]:
     print("lambda: ", ld)
     for it in [500, 5000, 7500, 9000, 9500, 9750, 9990, 9995, 10000]:
         print("iterations: ", it)
+
+
+def F1(A, b, x, ld):
+    print("L1 Reg")
+    ret = 0
+    for i in range(len(b)):
+        term = 1 + -b[i] * A[i].T @ x
+        ret += math.log(term, 2)
+    ret = ret / (len(b) * 2)
+    return ret + ld * np.linalg.norm(x, ord=1)
+
+def F2(A, b, x, ld):
+    print("L2 Reg")
+    ret = 0
+    for i in range(len(b)):
+        term = 1 + -b[i] * A[i].T @ x
+        ret += math.log(term, 2)
+    ret = ret / (len(b) * 2)
+    return ret + ld * np.linalg.norm(x)
