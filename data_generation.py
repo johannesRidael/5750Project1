@@ -65,6 +65,7 @@ def F1(A, b, x, ld):
     ret = ret / (len(b) * 2)
     return ret + ld * np.linalg.norm(x, ord=1)
 
+
 def F2(A, b, x, ld):
     print("L2 Reg")
     ret = 0
