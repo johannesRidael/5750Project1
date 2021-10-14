@@ -7,6 +7,7 @@ import math
 import numpy as np
 from numpy.random import multivariate_normal
 from scipy.linalg.special_matrices import toeplitz
+from scipy import optimize
 
 n_features = 50  # The dimension of the feature is set to 50
 n_samples = 1000 # Generate 1000 training data
@@ -56,7 +57,7 @@ for ld in [0.005, 0.01, 0.05, 0.1]:
         print("iterations: ", it)
 
 
-def F1(A, b, x, ld):
+def F1(x):
     print("L1 Reg")
     ret = 0
     for i in range(len(b)):
@@ -65,8 +66,29 @@ def F1(A, b, x, ld):
     ret = ret / (len(b) * 2)
     return ret + ld * np.linalg.norm(x, ord=1)
 
+def F1_prime(x):
+    """
+        :x: a vector d=50
+        :return: a vector with the gradient for each x
+        currently implemented for log_2
+        """
+    ret = []
+    for i in range(50):
+        curr = None
+        for j in range(50):
+            u = -b[j] * (x @ A[j])
+            t = 0
+            for k in range(50):
+                t += A[j][k]
+            curr += u * -b[j] * np.exp(u) * (t + A[j][i] * x[i] - A[j][i]) / (np.log(2, np.e) * (1 + np.exp(u)))
+        # now we add the gradient of the regularization term
+        curr += math.fabs(x[i])
+        ret.append(curr)
+    print("L1 Dev")
+    return ret
 
-def F2(A, b, x, ld):
+
+def F2(x):
     print("L2 Reg")
     ret = 0
     for i in range(len(b)):
@@ -74,3 +96,57 @@ def F2(A, b, x, ld):
         ret += math.log(term, 2)
     ret = ret / (len(b) * 2)
     return ret + ld * np.linalg.norm(x)
+
+def F2_prime(x):
+    """
+        :x: a vector d=50
+        :return: a vector with the gradient for each x
+        currently implemented for log_2
+        """
+    ret = []
+    for i in range(50):
+        curr = None
+        for j in range(50):
+            u = -b[j] * (x @ A[j])
+            t = 0
+            for k in range(50):
+                t += A[j][k]
+            curr += u * -b[j] * np.exp(u) * (t + A[j][i] * x[i] - A[j][i]) / (np.log(2, np.e) * (1 + np.exp(u)))
+        # now we add the gradient of the regularization term
+        u = 0
+        for k in range(50):
+            u += x[k] * x[k]
+        curr += x[i] / np.sqrt(u)
+        ret.append(curr)
+    print("L2 Dev")
+    return ret
+
+
+#from https://scipy-lectures.org/advanced/mathematical_optimization/auto_examples/plot_gradient_descent.html
+#TODO--Convert to arbitrary dimension,
+def gradient_descent(x0, f, f_prime, hessian=None, adaptative=False):
+    #x_i, y_i = x0
+    x_i = x0
+    all_x_i = list()
+    all_f_i = list()
+    for i in range(1, 100):
+        all_x_i.append(x_i)
+        all_f_i.append(f(x_i))
+        dx_i = f_prime(x_i)
+        if adaptative:
+            # Compute a step size using a line_search to satisfy the Wolf
+            # conditions
+            #step = optimize.line_search(f, f_prime,
+            #                    np.r_[x_i, y_i], -np.r_[dx_i, dy_i],
+            #                    np.r_[dx_i, dy_i], c2=.05)
+            step = 1#step[0]
+            if step is None:
+                step = 0
+        else:
+            step = 1
+        #x_i += - step*dx_i
+        for j in range(len(dx_i)):
+            x_i[j] -= step*dx_i[j]
+        if np.abs(all_f_i[-1]) < 1e-16:
+            break
+    return all_x_i, all_f_i
