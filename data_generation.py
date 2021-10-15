@@ -51,16 +51,17 @@ A=np.array(A)
 b = np.array(b)
 x0=[]
 for i in range(50):
-    x0.append(0)
+    x0.append(1)
 
 def F1(x):
     #print("L1 Reg")
     ret = 0
     for i in range(len(b)):
-        term = 1 + math.exp(-b[i] * A[i].T @ x)
+        hold = -b[i] * A[i].T @ x
+        term = 1 + np.exp(hold)
         ret += math.log(term, 2)
     ret = ret / (len(b) * 2)
-    return ret + ld * np.linalg.norm(x, ord=1)
+    return (ret/(2*len(x))) + ld * np.linalg.norm(x, ord=1)
 
 def F1_prime(x):
     """
@@ -76,9 +77,11 @@ def F1_prime(x):
             t = 0
             for k in range(50):
                 t += A[j][k]
+            a = (math.log(2, np.e) * (1 + np.exp(u)))
             curr += u * -b[j] * np.exp(u) * (t + A[j][i] * x[i] - A[j][i]) / (math.log(2, np.e) * (1 + np.exp(u)))
         # now we add the gradient of the regularization term
-        curr += math.fabs(x[i])
+        curr = curr / (2 * len(x))
+        curr += 1
         ret.append(curr)
     #print("L1 Dev")
     return ret
@@ -143,6 +146,8 @@ def gradient_descent(x0, f, f_prime, hessian=None, adaptative=False):
         #x_i += - step*dx_i
         for j in range(len(dx_i)):
             x_i[j] -= step*dx_i[j]
+        if math.fabs(f(x_i) - all_f_i[i-1]) < 1e-16:
+            break
     return all_x_i, all_f_i
 
 
