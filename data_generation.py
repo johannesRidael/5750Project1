@@ -92,7 +92,7 @@ def F1_prime(x, lam):
             ret.append(curr)
     #print("L1 Dev")
     #print("dev: ", ret)
-    return ret
+    return np.array(ret)
 
 
 def F2(x, lam):
@@ -137,7 +137,7 @@ def F2_prime(x, lam):
         else:
             ret.append(curr)
     #print("L2 Dev")
-    return ret
+    return np.array(ret)
 
 
 #from https://scipy-lectures.org/advanced/mathematical_optimization/auto_examples/plot_gradient_descent.html
@@ -148,7 +148,7 @@ def gradient_descent(x0, f, f_prime, lam, hessian=None, adaptative=False):
     all_x_i = []
     all_f_i = []
     for i in range(1, 10000):
-        all_x_i.append(x_i)
+        all_x_i.append(x_i.copy())
         all_f_i.append(f(x_i, lam))
         dx_i = f_prime(x_i, lam)
         ints.append(i)
@@ -171,16 +171,64 @@ def gradient_descent(x0, f, f_prime, lam, hessian=None, adaptative=False):
             break
     return all_x_i, all_f_i
 
+#from https://github.com/GRYE/Nesterov-accelerated-gradient-descent/blob/master/nesterov_method.py
+def nesterov_descent(func, dimension, lam, gradient_func=None, init_x=None, delta_x=0.0005,
+                     epsilon=None):
+    assert delta_x > 0, "Step must be positive."
+
+    x = init_x
+
+    if (epsilon is None):
+        epsilon = 1e-12
+
+    lambda_prev = 0
+    lambda_curr = 1
+    gamma = 1
+    y_prev = x
+    alpha = 0.9
+    all_fx = []
+    all_x = []
+    all_x.append(x)
+    all_fx.append(func(x, lam))
+    lastfunc = math.inf
+    gradient = gradient_func(x, lam)
+    ints.append(1)
+    i = 2
+    #while lastfunc - func(x,lam) >= epsilon:
+    for i in range(2, 1000):
+        #y_curr = x - alpha * gradient
+        #x = (1 - gamma) * y_curr + gamma * y_prev
+        for j in range(0, len(x)):
+            x[j] = (1-gamma)*(x[j] - alpha * gradient[j]) + gamma * y_prev[j]
+            y_prev[j] = x[j] - alpha * gradient[j]
+        lastfunc = func(x, lam)
+        all_fx.append(lastfunc)
+        all_x.append(x)
+        lambda_tmp = lambda_curr
+        lambda_curr = (1 + math.sqrt(1 + 4 * lambda_prev * lambda_prev)) / 2
+        lambda_prev = lambda_tmp
+
+        gamma = (1 - lambda_prev) / lambda_curr
+
+        gradient = gradient_func(x, lam)
+        ints.append(i)
+        #if all_fx[i-2] - all_fx[i-1] < 1e-12:
+        #    break
+    return all_x, all_fx
+
 
 #run the 4(8) methods, and plot
 ld = .001
 ints = []
 exes, wise = gradient_descent(x0.copy(), F1, F1_prime, ld)
-
+#exes, wise = nesterov_descent(F1, 50, ld, gradient_func=F1_prime, init_x=np.array(x0.copy()))
+for s in [.02, .1, .5, .8, .9, .97, .98, .99]:
+    print("index: ", math.floor(s * len(exes)), exes[math.floor(s * len(exes))])
 figure, axis = plt.subplots(2, 1)
 axis[0].plot(ints, wise)
 ints = []
 exes, wise = gradient_descent(x0.copy(), F2, F2_prime, ld)
+#exes, wise = nesterov_descent(F2, 50, ld, gradient_func=F2_prime, init_x=np.array(x0.copy()))
 axis[1].plot(ints, wise)
 #print(wise)
 #print(exes)
@@ -191,6 +239,8 @@ for l in [0.005, 0.01, 0.05, 0.1]:
     print("lambda: ", l)
     x1, y1 = gradient_descent(x0.copy(), F1, F1_prime, l)
     x2, y2= gradient_descent(x0.copy(), F2, F2_prime, l)
+    #x1, y1 = nesterov_descent(F1, 50, l, gradient_func=F1_prime, init_x=np.array(x0.copy()))
+    #x2, y2 = nesterov_descent(F2, 50, l, gradient_func=F1_prime, init_x=np.array(x0.copy()))
     len1 = len(x1)
     len2 = len(x2)
     for s in [.02, .1, .5, .8, .9, .97, .98, .99]:
